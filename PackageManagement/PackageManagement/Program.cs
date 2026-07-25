@@ -1,23 +1,46 @@
+using Azure;
+using Microsoft.SemanticKernel;
+using PackageManagement.Models;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.Configure<AzureAIOptions>(builder.Configuration.GetSection("AzureAI"));
+
+var azureAI = builder.Configuration.GetSection("AzureAI");
+
+string endpoint = azureAI["Endpoint"]!;
+string apiKey = azureAI["ApiKey"]!;
+string deploymentName = azureAI["DeploymentName"]!;
+
+builder.Services.AddSingleton<Kernel>(sp =>
+{
+    var kernelBuilder = Kernel.CreateBuilder();
+
+    kernelBuilder.AddAzureOpenAIChatCompletion(
+        deploymentName,
+        endpoint,
+        apiKey);
+    return kernelBuilder.Build();
+
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.MapGet("/ask", async (string question, Kernel kernel) =>
+{
+    var result = await kernel.InvokePromptAsync(question);
 
-app.UseAuthorization();
-
-app.MapControllers();
+    return Results.Ok(result.ToString());
+});
 
 app.Run();
