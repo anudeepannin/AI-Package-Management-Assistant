@@ -1,6 +1,7 @@
 using Azure;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using PackageManagement.Models;
 using PackageManagement.Plugins;
 
@@ -55,6 +56,21 @@ app.MapGet("/status", async (Kernel kernel) =>
         {
             ["packageId"] = "123"
         });
+
+    return Results.Ok(result.ToString());
+});
+
+
+app.MapPost("/chat", async (ChatRequest request, Kernel kernel) =>
+{
+    var executionSettings = new OpenAIPromptExecutionSettings
+    {
+        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+    };
+
+    var result = await kernel.InvokePromptAsync(
+        request.Message,
+        new(executionSettings));
 
     return Results.Ok(result.ToString());
 });
