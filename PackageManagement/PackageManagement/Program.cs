@@ -1,7 +1,8 @@
 using Azure;
 using Microsoft.SemanticKernel;
-using PackageManagement.Models;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using PackageManagement.Models;
+using PackageManagement.Plugins;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,8 +25,9 @@ builder.Services.AddSingleton<Kernel>(sp =>
         deploymentName,
         endpoint,
         apiKey);
-    return kernelBuilder.Build();
-
+    var kernel = kernelBuilder.Build();
+    kernel.Plugins.AddFromType<PackagePlugin>();
+    return kernel;
 });
 
 var app = builder.Build();
@@ -39,6 +41,20 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/ask", async (string question, Kernel kernel) =>
 {
     var result = await kernel.InvokePromptAsync(question);
+
+    return Results.Ok(result.ToString());
+});
+
+app.MapGet("/status", async (Kernel kernel) =>
+{
+    var plugin = kernel.Plugins["PackagePlugin"];
+
+    var result = await kernel.InvokeAsync(
+        plugin["GetPackageStatus"],
+        new()
+        {
+            ["packageId"] = "123"
+        });
 
     return Results.Ok(result.ToString());
 });
