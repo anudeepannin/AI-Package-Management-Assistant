@@ -16,6 +16,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<AzureAIOptions>(builder.Configuration.GetSection("AzureAI"));
 builder.Services.AddSingleton<ChatHistoryService>();
+builder.Services.AddSingleton<SearchService>();
 
 var azureAI = builder.Configuration.GetSection("AzureAI");
 
@@ -132,5 +133,40 @@ app.MapPost("/reset-chat",
     chatHistoryService.History.Clear();
 
     return Results.Ok("Chat history cleared");
+});
+app.MapPost("/chat-RAG",
+async (
+    ChatRequest request,
+    Kernel kernel,
+    SearchService searchService) =>
+{
+    var documents =
+        await searchService.SearchDocumentsAsync(
+            request.Message);
+
+    var prompt = $"""
+    Use the following package management
+    documentation to answer the question.
+
+    Documentation:
+    {documents}
+
+    Question:
+    {request.Message}
+    """;
+
+    var executionSettings =
+        new OpenAIPromptExecutionSettings
+        {
+            FunctionChoiceBehavior =
+                FunctionChoiceBehavior.Auto()
+        };
+
+    var result =
+        await kernel.InvokePromptAsync(
+            prompt,
+            new(executionSettings));
+
+    return Results.Ok(result.ToString());
 });
 app.Run();
