@@ -1,7 +1,9 @@
 using Azure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using PackageManagement.Data;
 using PackageManagement.Models;
 using PackageManagement.Plugins;
 
@@ -30,6 +32,9 @@ builder.Services.AddSingleton<Kernel>(sp =>
     kernel.Plugins.AddFromType<PackagePlugin>();
     return kernel;
 });
+builder.Services.AddDbContext<PackageDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("PackageDb")));
 
 var app = builder.Build();
 
@@ -75,4 +80,10 @@ app.MapPost("/chat", async (ChatRequest request, Kernel kernel) =>
     return Results.Ok(result.ToString());
 });
 
+app.MapGet("/packages", async (PackageDbContext db) =>
+{
+    var packages = await db.Packages.ToListAsync();
+
+    return Results.Ok(packages);
+});
 app.Run();
