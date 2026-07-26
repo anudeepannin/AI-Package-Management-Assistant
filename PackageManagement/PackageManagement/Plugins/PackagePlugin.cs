@@ -1,20 +1,45 @@
 ﻿using Microsoft.SemanticKernel;
-
+using PackageManagement.Data;
 
 namespace PackageManagement.Plugins
 {
     public class PackagePlugin
     {
-        [KernelFunction]
-        public string GetPackageStatus(string packageId)
+
+        private readonly PackageDbContext _dbContext;
+
+        public PackagePlugin(PackageDbContext dbContext)
         {
-            return $"Package {packageId} is Active";
+            _dbContext = dbContext;
         }
 
         [KernelFunction]
-        public string GetPackageOwner(string packageId)
+        public string GetPackageStatus(int packageId)
         {
-            return $"Owner of package {packageId} is System";
+            var package = _dbContext.Packages
+                .FirstOrDefault(x => x.PackageId == packageId);
+
+            return package?.Status ?? "Package not found";
         }
+        [KernelFunction]
+        public string GetPackageOwner(int packageId)
+        {
+            var package = _dbContext.Packages
+                .FirstOrDefault(x => x.PackageId == packageId);
+
+            return package?.OwnerName ?? "Package not found";
+        }
+
+        //[KernelFunction]
+        //public string GetPackageStatus(string packageId)
+        //{
+        //    return $"Package {packageId} is Active";
+        //}
+
+        //[KernelFunction]
+        //public string GetPackageOwner(string packageId)
+        //{
+        //    return $"Owner of package {packageId} is System";
+        //}
     }
 }

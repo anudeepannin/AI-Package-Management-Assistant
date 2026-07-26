@@ -20,7 +20,7 @@ string endpoint = azureAI["Endpoint"]!;
 string apiKey = azureAI["ApiKey"]!;
 string deploymentName = azureAI["DeploymentName"]!;
 
-builder.Services.AddSingleton<Kernel>(sp =>
+builder.Services.AddScoped<Kernel>(sp =>
 {
     var kernelBuilder = Kernel.CreateBuilder();
 
@@ -29,7 +29,12 @@ builder.Services.AddSingleton<Kernel>(sp =>
         endpoint,
         apiKey);
     var kernel = kernelBuilder.Build();
-    kernel.Plugins.AddFromType<PackagePlugin>();
+    // kernel.Plugins.AddFromType<PackagePlugin>();
+
+    var dbContext = sp.GetRequiredService<PackageDbContext>();
+
+    kernel.Plugins.AddFromObject(
+        new PackagePlugin(dbContext));
     return kernel;
 });
 builder.Services.AddDbContext<PackageDbContext>(options =>
