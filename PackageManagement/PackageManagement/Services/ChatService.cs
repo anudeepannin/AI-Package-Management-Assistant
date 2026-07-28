@@ -1,5 +1,6 @@
 ﻿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace PackageManagement.Services;
 
@@ -7,50 +8,64 @@ public class ChatService
 {
     private readonly Kernel _kernel;
     private readonly SearchService _searchService;
-    private readonly PackageContextService _packageService;
+    private readonly PackageContextService _packageContextService;
+    private readonly ChatHistoryService _chatHistoryService;
 
     public ChatService(
         Kernel kernel,
         SearchService searchService,
-        PackageContextService packageService)
+        PackageContextService packageContextService, ChatHistoryService chatHistoryService)
     {
         _kernel = kernel;
         _searchService = searchService;
-        _packageService = packageService;
+        _packageContextService = packageContextService;
+        _chatHistoryService = chatHistoryService;
     }
 
-    public async Task<string> ChatWithSqlAsync(
-        string message)
+    public async Task<string> AskAsync(string question)
     {
         var documentContext =
-            await _searchService
-                .SearchDocumentsAsync(message);
+            await _searchService.SearchDocumentsAsync(question);
 
         var packageContext =
-            _packageService
-                .GetPackageInfo(message);
+            _packageContextService.GetPackageInfo(question);
 
-        var prompt = $"""
-        Document Information:
-        {documentContext}
+        var chatService =
+            _kernel.GetRequiredService<IChatCompletionService>();
 
-        Package Information:
-        {packageContext}
+        var contextPrompt = $"""
+You are a Package Management Assistant.
 
-        Question:
-        {message}
-        """;
+Use previous conversation history when answering follow-up questions.
+
+Document Information:
+{documentContext}
+
+Package Information:
+{packageContext}
+
+Current Question:
+{question}
+""";
+
+        _chatHistoryService.History.AddUserMessage(contextPrompt);
+
+        var settings =
+            new OpenAIPromptExecutionSettings
+            {
+                FunctionChoiceBehavior =
+                    FunctionChoiceBehavior.Auto()
+            };
 
         var result =
-            await _kernel.InvokePromptAsync(
-                prompt,
-                new(
-                    new OpenAIPromptExecutionSettings
-                    {
-                        FunctionChoiceBehavior =
-                            FunctionChoiceBehavior.Auto()
-                    }));
+            await chatService.GetChatMessageContentAsync(
+                _chatHistoryService.History,
+                settings,
+                _kernel);
 
-        return result.ToString();
+        _chatHistoryService.History.AddAssistantMessage(
+            result.Content ?? string.Empty);
+
+        return result.Content ?? string.Empty;
     }
 }

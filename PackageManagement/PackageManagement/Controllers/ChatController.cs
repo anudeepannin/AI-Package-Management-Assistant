@@ -5,18 +5,23 @@ using PackageManagement.Services;
 namespace PackageManagement.Controllers;
 
 [ApiController]
-[Route("api/chat")]
+[Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
+    private readonly ChatService _chatService;
+
+    public ChatController(ChatService chatService)
+    {
+        _chatService = chatService;
+    }
+
     [HttpPost]
     public async Task<IActionResult> Chat(
-        ChatRequest request,
-        [FromServices] ChatService chatService)
+        [FromBody] ChatRequest request)
     {
         var response =
-            await chatService
-                .ChatWithSqlAsync(
-                    request.Message);
+            await _chatService.AskAsync(
+                request.Message);
 
         return Ok(response);
     }
