@@ -13,11 +13,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddScoped<PackagePlugin>();
+builder.Services.AddScoped<PackageContextService>();
+builder.Services.AddControllers();
 builder.Services.Configure<AzureAIOptions>(builder.Configuration.GetSection("AzureAI"));
 builder.Services.AddSingleton<ChatHistoryService>();
 builder.Services.AddSingleton<SearchService>();
-
+builder.Services.AddScoped<ChatService>();
 var azureAI = builder.Configuration.GetSection("AzureAI");
 
 string endpoint = azureAI["Endpoint"]!;
@@ -52,6 +54,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.MapControllers();
 
 app.MapGet("/ask", async (string question, Kernel kernel) =>
 {
@@ -89,84 +92,128 @@ app.MapGet("/status", async (Kernel kernel) =>
 //    return Results.Ok(result.ToString());
 //});
 
-app.MapGet("/packages", async (PackageDbContext db) =>
-{
-    var packages = await db.Packages.ToListAsync();
+//app.MapGet("/packages", async (PackageDbContext db) =>
+//{
+//    var packages = await db.Packages.ToListAsync();
 
-    return Results.Ok(packages);
-});
+//    return Results.Ok(packages);
+//});
 
-app.MapPost("/chat",
-async (
-    ChatRequest request,
-    Kernel kernel,
-    ChatHistoryService chatHistoryService) =>
-{
-    var chatService =
-        kernel.GetRequiredService<IChatCompletionService>();
+//app.MapPost("/chat",
+//async (
+//    ChatRequest request,
+//    Kernel kernel,
+//    ChatHistoryService chatHistoryService) =>
+//{
+//    var chatService =
+//        kernel.GetRequiredService<IChatCompletionService>();
 
-    chatHistoryService.History.AddUserMessage(
-        request.Message);
+//    chatHistoryService.History.AddUserMessage(
+//        request.Message);
 
-    var executionSettings =
-        new OpenAIPromptExecutionSettings
-        {
-            FunctionChoiceBehavior =
-                FunctionChoiceBehavior.Auto()
-        };
+//    var executionSettings =
+//        new OpenAIPromptExecutionSettings
+//        {
+//            FunctionChoiceBehavior =
+//                FunctionChoiceBehavior.Auto()
+//        };
 
-    var result =
-        await chatService.GetChatMessageContentAsync(
-            chatHistoryService.History,
-            executionSettings,
-            kernel);
+//    var result =
+//        await chatService.GetChatMessageContentAsync(
+//            chatHistoryService.History,
+//            executionSettings,
+//            kernel);
 
-    chatHistoryService.History.AddAssistantMessage(
-        result.Content ?? string.Empty);
+//    chatHistoryService.History.AddAssistantMessage(
+//        result.Content ?? string.Empty);
 
-    return Results.Ok(result.Content);
-});
+//    return Results.Ok(result.Content);
+//});
 
-app.MapPost("/reset-chat",
-(ChatHistoryService chatHistoryService) =>
-{
-    chatHistoryService.History.Clear();
+//app.MapPost("/reset-chat",
+//(ChatHistoryService chatHistoryService) =>
+//{
+//    chatHistoryService.History.Clear();
 
-    return Results.Ok("Chat history cleared");
-});
-app.MapPost("/chat-RAG",
-async (
-    ChatRequest request,
-    Kernel kernel,
-    SearchService searchService) =>
-{
-    var documents =
-        await searchService.SearchDocumentsAsync(
-            request.Message);
+//    return Results.Ok("Chat history cleared");
+//});
+//app.MapPost("/chat-RAG",
+//async (
+//    ChatRequest request,
+//    Kernel kernel,
+//    SearchService searchService) =>
+//{
+//    var documents =
+//        await searchService.SearchDocumentsAsync(
+//            request.Message);
 
-    var prompt = $"""
-    Use the following package management
-    documentation to answer the question.
+//    var prompt = $"""
+//    Use the following package management
+//    documentation to answer the question.
 
-    Documentation:
-    {documents}
+//    Documentation:
+//    {documents}
 
-    Question:
-    {request.Message}
-    """;
+//    Question:
+//    {request.Message}
+//    """;
 
-    var executionSettings =
-        new OpenAIPromptExecutionSettings
-        {
-            FunctionChoiceBehavior =
-                FunctionChoiceBehavior.Auto()
-        };
+//    var executionSettings =
+//        new OpenAIPromptExecutionSettings
+//        {
+//            FunctionChoiceBehavior =
+//                FunctionChoiceBehavior.Auto()
+//        };
 
-    var result =
-        await kernel.InvokePromptAsync(
-            prompt,
-            new(executionSettings));
+//    var result =
+//        await kernel.InvokePromptAsync(
+//            prompt,
+//            new(executionSettings));
 
-    return Results.Ok(result.ToString());
-});
+//    return Results.Ok(result.ToString());
+//});
+
+//app.MapPost("/chat-SQL",
+//async (
+//    ChatRequest request,
+//    Kernel kernel,
+//    SearchService searchService,
+//    PackageContextService packageService) =>
+//{
+//    var documentContext =
+//        await searchService.SearchDocumentsAsync(
+//            request.Message);
+
+//    var packageContext =
+//        packageService.GetPackageInfo(
+//            request.Message);
+
+//    var prompt = $"""
+//You are a Package Management Assistant.
+
+//Document Information:
+//{documentContext}
+
+//Package Information:
+//{packageContext}
+
+//Answer the following question:
+
+//{request.Message}
+//""";
+
+//    var executionSettings =
+//        new OpenAIPromptExecutionSettings
+//        {
+//            FunctionChoiceBehavior =
+//                FunctionChoiceBehavior.Auto()
+//        };
+
+//    var result =
+//        await kernel.InvokePromptAsync(
+//            prompt,
+//            new(executionSettings));
+
+//    return Results.Ok(result.ToString());
+//});
 app.Run();
