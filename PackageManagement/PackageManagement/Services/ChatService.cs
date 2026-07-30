@@ -10,47 +10,45 @@ public class ChatService
     private readonly SearchService _searchService;
     private readonly PackageContextService _packageContextService;
     private readonly ChatHistoryService _chatHistoryService;
+    private readonly AgentOrchestratorService _agentOrchestrator;
 
     public ChatService(
         Kernel kernel,
         SearchService searchService,
-        PackageContextService packageContextService, ChatHistoryService chatHistoryService)
+        PackageContextService packageContextService, ChatHistoryService chatHistoryService, AgentOrchestratorService agentOrchestrator)
     {
         _kernel = kernel;
         _searchService = searchService;
         _packageContextService = packageContextService;
         _chatHistoryService = chatHistoryService;
+        _agentOrchestrator = agentOrchestrator;
+
     }
 
     public async Task<string> AskAsync(string question)
     {
-        var documentContext =
-            await _searchService.SearchDocumentsAsync(question);
-
-        var packageContext =
-            _packageContextService.GetPackageInfo(question);
+        // Route question to the appropriate agent
+        var agentResponse =
+            await _agentOrchestrator.RouteAsync(question);
 
         var chatService =
             _kernel.GetRequiredService<IChatCompletionService>();
 
-        var contextPrompt = $"""
+        var prompt = $"""
 You are a Package Management Assistant.
 
-Use previous conversation history when answering follow-up questions.
+Agent Result:
+{agentResponse}
 
-Document Information:
-{documentContext}
+Use the conversation history when answering follow-up questions.
 
-Package Information:
-{packageContext}
-
-Current Question:
+Question:
 {question}
 """;
 
-        _chatHistoryService.History.AddUserMessage(contextPrompt);
+        _chatHistoryService.History.AddUserMessage(prompt);
 
-        var settings =
+        var executionSettings =
             new OpenAIPromptExecutionSettings
             {
                 FunctionChoiceBehavior =
@@ -60,7 +58,7 @@ Current Question:
         var result =
             await chatService.GetChatMessageContentAsync(
                 _chatHistoryService.History,
-                settings,
+                executionSettings,
                 _kernel);
 
         _chatHistoryService.History.AddAssistantMessage(

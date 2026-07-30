@@ -4,6 +4,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using PackageManagement.Agents;
 using PackageManagement.Data;
 using PackageManagement.Models;
 using PackageManagement.Plugins;
@@ -20,6 +21,12 @@ builder.Services.Configure<AzureAIOptions>(builder.Configuration.GetSection("Azu
 builder.Services.AddSingleton<ChatHistoryService>();
 builder.Services.AddSingleton<SearchService>();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<PackageAgent>();
+builder.Services.AddScoped<RenewalAgent>();
+builder.Services.AddScoped<ComplianceAgent>();
+builder.Services.AddScoped<SupportAgent>();
+builder.Services.AddScoped<
+    AgentOrchestratorService>();
 var azureAI = builder.Configuration.GetSection("AzureAI");
 
 string endpoint = azureAI["Endpoint"]!;
