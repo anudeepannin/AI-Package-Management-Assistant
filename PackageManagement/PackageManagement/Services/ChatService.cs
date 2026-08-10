@@ -11,25 +11,58 @@ public class ChatService
     private readonly PackageContextService _packageContextService;
     private readonly ChatHistoryService _chatHistoryService;
     private readonly AgentOrchestratorService _agentOrchestrator;
+    private readonly UserSessionService _session;
 
     public ChatService(
         Kernel kernel,
         SearchService searchService,
-        PackageContextService packageContextService, ChatHistoryService chatHistoryService, AgentOrchestratorService agentOrchestrator)
+        PackageContextService packageContextService, ChatHistoryService chatHistoryService, AgentOrchestratorService agentOrchestrator, UserSessionService session)
     {
         _kernel = kernel;
         _searchService = searchService;
         _packageContextService = packageContextService;
         _chatHistoryService = chatHistoryService;
         _agentOrchestrator = agentOrchestrator;
-
+        _session = session;
     }
 
     public async Task<string> AskAsync(string question)
     {
         // Route question to the appropriate agent
         var agentResponse =
-            await _agentOrchestrator.RouteAsync(question);
+           await _agentOrchestrator.RouteAsync(question);
+        //if (!string.IsNullOrEmpty(_session.ActiveAgent))
+        //{
+        //    return $"AGENT MODE => {_session.ActiveAgent} => {agentResponse}";
+        //}
+        if (!string.IsNullOrEmpty(_session.ActiveAgent))
+        {
+            return agentResponse;
+        }
+
+        //  return $"DEBUG RESPONSE => {agentResponse}";
+        //  return $"DEBUG MENU={_session.CurrentMenu} | ACTIVE={_session.ActiveAgent} | RESPONSE={agentResponse}";
+        //if (_session.ActiveAgent == "Renewal")
+        //{
+        //    return agentResponse;
+        //}
+
+        //if (_session.ActiveAgent == "Compliance")
+        //{
+        //    return agentResponse;
+        //}
+
+        //if (_session.ActiveAgent == "Support")
+        //{
+        //    return agentResponse;
+        //}
+
+        //if (agentResponse.Contains("Available Actions"))
+        //{
+        //    return agentResponse;
+        //}
+
+
 
         var chatService =
             _kernel.GetRequiredService<IChatCompletionService>();
