@@ -9,19 +9,22 @@ namespace PackageManagement.Services
         private readonly ComplianceAgent _complianceAgent;
         private readonly SupportAgent _supportAgent;
         private readonly UserSessionService _session;
+        private readonly RenewalRequestService _renewalRequestService;
 
         public AgentOrchestratorService(
             PackageAgent packageAgent,
             RenewalAgent renewalAgent,
             ComplianceAgent complianceAgent,
             SupportAgent supportAgent,
-            UserSessionService session)
+            UserSessionService session,
+            RenewalRequestService renewalRequestService)
         {
             _packageAgent = packageAgent;
             _renewalAgent = renewalAgent;
             _complianceAgent = complianceAgent;
             _supportAgent = supportAgent;
             _session = session;
+            _renewalRequestService = renewalRequestService;
         }
 
         public async Task<string> RouteAsync(string question)
@@ -76,10 +79,12 @@ namespace PackageManagement.Services
                     if (question == "1")
                     {
                         var requestId =
-                            $"REN-{DateTime.Now:yyyyMMddHHmmss}";
+                                    $"REN-{DateTime.Now:yyyyMMddHHmmss}";
 
-                        _session.ActiveAgent = null;
-                        _session.RenewalStep = null;
+                        await _renewalRequestService.CreateRequestAsync(
+                            requestId,
+                            _session.CurrentPackageId ?? 0,
+                            _session.SelectedDuration ?? "");
 
                         return $"""
                                     Renewal Request Created
@@ -116,6 +121,45 @@ namespace PackageManagement.Services
             }
 
             var q = question.ToLower();
+            if (q.Contains("renewal request status"))
+            {
+                var match =
+                    System.Text.RegularExpressions.Regex
+                        .Match(question, @"\d+");
+
+                if (!match.Success)
+                {
+                    return """
+                    Please provide a package number.
+                    """;
+                }
+
+                int packageId =
+                    int.Parse(match.Value);
+
+                var request =
+                    await _renewalRequestService
+                        .GetLatestRequestAsync(packageId);
+
+                if (request == null)
+                {
+                    return $"No renewal request found for package {packageId}.";
+                }
+
+                return $"""
+    Renewal Request Details
+
+    Request Id: {request.RequestId}
+
+    Package Id: {request.PackageId}
+
+    Duration: {request.Duration}
+
+    Status: {request.Status}
+
+    Created Date: {request.CreatedDate}
+    """;
+            }
 
             if (_session.CurrentMenu == "AgentSelection")
             {
@@ -155,10 +199,66 @@ namespace PackageManagement.Services
                         _session.CurrentMenu = null;
 
                         return $"Owner details for Package {_session.CurrentPackageId} coming next.";
-                }
-            }
 
-            
+                    case "5":
+
+                        if (_session.CurrentPackageId == null)
+                        {
+                            return "No package selected.";
+                        }
+                        var request =
+                            await _renewalRequestService
+                                .GetLatestRequestAsync(
+                                    _session.CurrentPackageId.Value);
+
+                        if (request == null)
+                        {
+                                                return """
+                            No renewal requests found.
+                            """;
+                        }
+
+                    return $"""
+                        Renewal Request Details
+
+                        Request Id: {request.RequestId}
+
+                        Package Id: {request.PackageId}
+
+                        Duration: {request.Duration}
+
+                        Status: {request.Status}
+
+                        Created Date: {request.CreatedDate}
+                        """;
+                    }
+                 }
+            if (q.Contains("renewal request status"))
+            {
+                if (_session.CurrentPackageId == null)
+                {
+                    return "No package selected.";
+                }
+                var request =
+                    await _renewalRequestService
+                        .GetLatestRequestAsync(
+                            _session.CurrentPackageId.Value);
+
+                if (request == null)
+                {
+                    return "No renewal requests found.";
+                }
+
+                return $"""
+                            Renewal Request Details
+
+                            Request Id: {request.RequestId}
+
+                            Status: {request.Status}
+
+                            Duration: {request.Duration}
+                            """;
+            }
 
             var packageResponse =
                 _packageAgent.Execute(question);
@@ -177,6 +277,7 @@ namespace PackageManagement.Services
                         2. Compliance Agent
                         3. Support Agent
                         4. Package Owner Details
+                        5. Renewal Request Status
 
                         Please select an option.
                         """;

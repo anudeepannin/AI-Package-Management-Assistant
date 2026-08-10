@@ -28,6 +28,7 @@ builder.Services.AddScoped<SupportAgent>();
 builder.Services.AddScoped<
     AgentOrchestratorService>();
 builder.Services.AddSingleton<UserSessionService>();
+builder.Services.AddScoped<RenewalRequestService>();
 var azureAI = builder.Configuration.GetSection("AzureAI");
 
 string endpoint = azureAI["Endpoint"]!;
