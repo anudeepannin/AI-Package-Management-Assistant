@@ -31,36 +31,19 @@ public class ChatService
         // Route question to the appropriate agent
         var agentResponse =
            await _agentOrchestrator.RouteAsync(question);
-        //if (!string.IsNullOrEmpty(_session.ActiveAgent))
-        //{
-        //    return $"AGENT MODE => {_session.ActiveAgent} => {agentResponse}";
-        //}
+        //return $"DEBUG CHAT SERVICE => {agentResponse}";
+
+        if (agentResponse.StartsWith("Renewal Request") ||agentResponse.Contains("Approved") ||agentResponse.Contains("Rejected"))
+        {
+            return agentResponse;
+        }
+
         if (!string.IsNullOrEmpty(_session.ActiveAgent))
         {
             return agentResponse;
         }
 
-        //  return $"DEBUG RESPONSE => {agentResponse}";
-        //  return $"DEBUG MENU={_session.CurrentMenu} | ACTIVE={_session.ActiveAgent} | RESPONSE={agentResponse}";
-        //if (_session.ActiveAgent == "Renewal")
-        //{
-        //    return agentResponse;
-        //}
-
-        //if (_session.ActiveAgent == "Compliance")
-        //{
-        //    return agentResponse;
-        //}
-
-        //if (_session.ActiveAgent == "Support")
-        //{
-        //    return agentResponse;
-        //}
-
-        //if (agentResponse.Contains("Available Actions"))
-        //{
-        //    return agentResponse;
-        //}
+    
 
 
 
@@ -68,16 +51,16 @@ public class ChatService
             _kernel.GetRequiredService<IChatCompletionService>();
 
         var prompt = $"""
-You are a Package Management Assistant.
+                            You are a Package Management Assistant.
 
-Agent Result:
-{agentResponse}
+                            Agent Result:
+                            {agentResponse}
 
-Use the conversation history when answering follow-up questions.
+                            Use the conversation history when answering follow-up questions.
 
-Question:
-{question}
-""";
+                            Question:
+                            {question}
+                            """;
 
         _chatHistoryService.History.AddUserMessage(prompt);
 

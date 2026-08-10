@@ -147,18 +147,18 @@ namespace PackageManagement.Services
                 }
 
                 return $"""
-    Renewal Request Details
+                            Renewal Request Details
 
-    Request Id: {request.RequestId}
+                            Request Id: {request.RequestId}
 
-    Package Id: {request.PackageId}
+                            Package Id: {request.PackageId}
 
-    Duration: {request.Duration}
+                            Duration: {request.Duration}
 
-    Status: {request.Status}
+                            Status: {request.Status}
 
-    Created Date: {request.CreatedDate}
-    """;
+                            Created Date: {request.CreatedDate}
+                            """;
             }
 
             if (_session.CurrentMenu == "AgentSelection")
@@ -260,6 +260,11 @@ namespace PackageManagement.Services
                             """;
             }
 
+            if (q.StartsWith("approve"))
+            {
+                return await _complianceAgent
+                    .ExecuteAsync(q);
+            }
             var packageResponse =
                 _packageAgent.Execute(question);
 

@@ -41,6 +41,28 @@ namespace PackageManagement.Services
                 .FirstOrDefaultAsync();
         }
 
-        
+        public async Task<bool> UpdateStatusAsync( string requestId, string status)
+        {
+            var request =
+                await _context.RenewalRequests
+                    .FirstOrDefaultAsync(
+                        x => x.RequestId == requestId);
+
+            if (request == null)
+                return false;
+
+            request.Status = status;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<RenewalRequest?> GetRequestByIdAsync( string requestId)
+        {
+            return await _context.RenewalRequests
+                .FirstOrDefaultAsync(x =>
+                    x.RequestId == requestId);
+        }
     }
 }

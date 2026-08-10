@@ -40,5 +40,9 @@ namespace PackageManagement.Services
             return _packagePlugin.GetPackageStatus(
                 packageId);
         }
+        public string ActivatePackage(int packageId)
+        {
+            return _packagePlugin.ActivatePackage(packageId);
+        }
     }
 }

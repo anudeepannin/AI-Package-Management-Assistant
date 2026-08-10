@@ -30,6 +30,21 @@ namespace PackageManagement.Plugins
             return package?.OwnerName ?? "Package not found";
         }
 
+        public string ActivatePackage(int packageId)
+        {
+            var package = _dbContext.Packages
+                .FirstOrDefault(x => x.PackageId == packageId);
+
+            if (package == null)
+                return "Package not found.";
+
+            package.Status = "Active";
+
+            _dbContext.SaveChanges();
+
+            return "Package activated successfully.";
+        }
+
         //[KernelFunction]
         //public string GetPackageStatus(string packageId)
         //{
