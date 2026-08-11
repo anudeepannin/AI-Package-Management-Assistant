@@ -45,6 +45,26 @@ namespace PackageManagement.Plugins
             return "Package activated successfully.";
         }
 
+        public string GetPackageOwnerdetails(int packageId)
+        {
+            var package = _dbContext.Packages
+                .FirstOrDefault(x => x.PackageId == packageId);
+
+            if (package == null)
+            {
+                return "Package not found.";
+            }
+
+            return $"""
+                Package Owner Details
+
+                Package Id: {package.PackageId}
+                Package Name: {package.PackageName}
+                Owner: {package.OwnerName}
+                Status: {package.Status}
+                """;
+        }
+
         //[KernelFunction]
         //public string GetPackageStatus(string packageId)
         //{

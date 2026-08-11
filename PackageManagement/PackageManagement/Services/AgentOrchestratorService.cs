@@ -1,4 +1,6 @@
 ﻿using PackageManagement.Agents;
+using PackageManagement.Models;
+using PackageManagement.Plugins;
 
 namespace PackageManagement.Services
 {
@@ -10,6 +12,8 @@ namespace PackageManagement.Services
         private readonly SupportAgent _supportAgent;
         private readonly UserSessionService _session;
         private readonly RenewalRequestService _renewalRequestService;
+        private readonly OwnerAgent _ownerAgent;
+        private readonly PackagePlugin _packagePlugin;  
 
         public AgentOrchestratorService(
             PackageAgent packageAgent,
@@ -17,14 +21,18 @@ namespace PackageManagement.Services
             ComplianceAgent complianceAgent,
             SupportAgent supportAgent,
             UserSessionService session,
-            RenewalRequestService renewalRequestService)
+            RenewalRequestService renewalRequestService,
+            OwnerAgent ownerAgent,
+            PackagePlugin packagePlugin)
         {
             _packageAgent = packageAgent;
             _renewalAgent = renewalAgent;
             _complianceAgent = complianceAgent;
             _supportAgent = supportAgent;
+            _ownerAgent = ownerAgent;
             _session = session;
             _renewalRequestService = renewalRequestService;
+            _packagePlugin = packagePlugin;
         }
 
         public async Task<string> RouteAsync(string question)
@@ -166,20 +174,36 @@ namespace PackageManagement.Services
                 switch (q)
                 {
                     case "1":
+                        if (_session.CurrentPackageId == null)
+                        {
+                            return "No package selected.";
+                        }
+                        var packageStatus = _packagePlugin.GetPackageStatus(_session.CurrentPackageId.Value);
+                        if (packageStatus == "Active")
+                        {
+                            return """
+                                    Package is already Active.
+
+                                    Renewal can only be requested for:
+                                    - Expired packages
+                                    - Packages nearing expiration
+
+                                    No renewal action is required currently.
+                                    """;
+                        }
                         _session.ActiveAgent = "Renewal";
                         _session.CurrentMenu = null;
                         _session.RenewalStep = "Duration";
 
                         return """
-                               Renewal Agent
+                                   Renewal Agent
 
-                               Choose duration:
+                                   Choose duration:
 
-                               1. One Year
-                               2. Two Years
-                               3. Three Years
-                               """;
-
+                                   1. One Year
+                                   2. Two Years
+                                   3. Three Years
+                                   """;
                     case "2":
                         _session.ActiveAgent = "Compliance";
                         _session.CurrentMenu = null;
@@ -195,10 +219,17 @@ namespace PackageManagement.Services
                             $"Package {_session.CurrentPackageId}");
 
                     case "4":
-                        _session.ActiveAgent = "Owner";
-                        _session.CurrentMenu = null;
+                        if (_session.CurrentPackageId == null)
+                        {
+                            return "No package selected.";
+                        }
 
-                        return $"Owner details for Package {_session.CurrentPackageId} coming next.";
+                        {
+                            _session.ActiveAgent = "Owner";
+                            _session.CurrentMenu = null;
+
+                            return _ownerAgent.Execute(_session.CurrentPackageId.Value);
+                        }
 
                     case "5":
 
@@ -268,9 +299,7 @@ namespace PackageManagement.Services
             var packageResponse =
                 _packageAgent.Execute(question);
 
-            if (packageResponse.Contains(
-                "Expired",
-                StringComparison.OrdinalIgnoreCase))
+            if (question.ToLower().Contains("package"))
             {
                 _session.CurrentMenu = "AgentSelection";
                 return $"""
@@ -286,7 +315,7 @@ namespace PackageManagement.Services
 
                         Please select an option.
                         """;
-                                    }
+            }
 
             return packageResponse;
         }

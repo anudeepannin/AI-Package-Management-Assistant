@@ -44,5 +44,11 @@ namespace PackageManagement.Services
         {
             return _packagePlugin.ActivatePackage(packageId);
         }
+
+        public string GetPackageOwnerdetails(int packageId)
+        {
+            return _packagePlugin
+                .GetPackageOwnerdetails(packageId);
+        }
     }
 }
