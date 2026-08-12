@@ -45,6 +45,7 @@ builder.Services.AddScoped<PackageAgent>();
 builder.Services.AddScoped<RenewalAgent>();
 builder.Services.AddScoped<ComplianceAgent>();
 builder.Services.AddScoped<SupportAgent>();
+builder.Services.AddScoped<SupportTicketService>();
 builder.Services.AddScoped<
     AgentOrchestratorService>();
 builder.Services.AddSingleton<UserSessionService>();

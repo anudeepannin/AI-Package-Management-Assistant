@@ -10,5 +10,6 @@ namespace PackageManagement.Data
 
         public DbSet<Package> Packages { get; set; }
         public DbSet<RenewalRequest> RenewalRequests { get; set; }
+        public DbSet<SupportTicket> SupportTickets { get; set; }
     }
 }
