@@ -13,7 +13,9 @@ namespace PackageManagement.Services
         private readonly UserSessionService _session;
         private readonly RenewalRequestService _renewalRequestService;
         private readonly OwnerAgent _ownerAgent;
-        private readonly PackagePlugin _packagePlugin;  
+        private readonly PackagePlugin _packagePlugin;
+        private readonly FoundryAgentService _foundryAgent;
+
 
         public AgentOrchestratorService(
             PackageAgent packageAgent,
@@ -23,7 +25,8 @@ namespace PackageManagement.Services
             UserSessionService session,
             RenewalRequestService renewalRequestService,
             OwnerAgent ownerAgent,
-            PackagePlugin packagePlugin)
+            PackagePlugin packagePlugin,
+            FoundryAgentService foundryAgent)
         {
             _packageAgent = packageAgent;
             _renewalAgent = renewalAgent;
@@ -33,6 +36,7 @@ namespace PackageManagement.Services
             _session = session;
             _renewalRequestService = renewalRequestService;
             _packagePlugin = packagePlugin;
+            _foundryAgent = foundryAgent;
         }
 
         public async Task<string> RouteAsync(string question)
@@ -127,7 +131,13 @@ namespace PackageManagement.Services
                                 """;
                 }
             }
-
+            if (question.Equals("test foundry", StringComparison.OrdinalIgnoreCase))
+            {
+                return _foundryAgent.ExecuteAgent(
+                    "RenewalAgent",
+                    "2",
+                    "Explain the package renewal process");
+            }
             var q = question.ToLower();
             if (q.Contains("renewal request status"))
             {

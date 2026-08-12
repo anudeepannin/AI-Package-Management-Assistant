@@ -30,6 +30,7 @@ builder.Services.AddScoped<
 builder.Services.AddSingleton<UserSessionService>();
 builder.Services.AddScoped<RenewalRequestService>();
 builder.Services.AddScoped<OwnerAgent>();
+builder.Services.AddSingleton<FoundryAgentService>();
 var azureAI = builder.Configuration.GetSection("AzureAI");
 
 string endpoint = azureAI["Endpoint"]!;
