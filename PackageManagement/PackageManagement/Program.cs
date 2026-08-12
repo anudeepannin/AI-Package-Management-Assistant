@@ -13,7 +13,27 @@ using PackageManagement.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.CustomOperationIds(apiDescription =>
+    {
+        apiDescription.ActionDescriptor.RouteValues.TryGetValue("action", out var action);
+        if (!string.IsNullOrWhiteSpace(action))
+        {
+            return action;
+        }
+
+        var method = apiDescription.HttpMethod?.ToLowerInvariant() ?? "operation";
+        var route = apiDescription.RelativePath?
+            .Split('?', 2)[0]
+            .Replace("/", "_")
+            .Replace("{", "")
+            .Replace("}", "")
+            .Trim('_');
+
+        return string.IsNullOrWhiteSpace(route) ? method : $"{method}_{route}";
+    });
+});
 builder.Services.AddScoped<PackagePlugin>();
 builder.Services.AddScoped<PackageContextService>();
 builder.Services.AddControllers();
@@ -70,9 +90,57 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseCors("ReactPolicy");
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.Equals(
+            "/swagger/v1/swagger.json",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    var responseBody = context.Response.Body;
+    await using var buffer = new MemoryStream();
+    context.Response.Body = buffer;
+
+    try
+    {
+        await next();
+        buffer.Position = 0;
+
+        using var reader = new StreamReader(buffer);
+        var document = await reader.ReadToEndAsync();
+        document = document.Replace(
+            "\"openapi\": \"3.0.4\"",
+            "\"openapi\": \"3.0.1\"",
+            StringComparison.Ordinal);
+
+        context.Response.Body = responseBody;
+        context.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(document);
+        await context.Response.WriteAsync(document);
+    }
+    finally
+    {
+        context.Response.Body = responseBody;
+    }
+});
+app.UseSwagger(options =>
+{
+    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
+    options.PreSerializeFilters.Add((document, request) =>
+    {
+        document.Servers =
+        [
+            new Microsoft.OpenApi.OpenApiServer
+            {
+                Url = $"{request.Scheme}://{request.Host.Value}"
+            }
+        ];
+    });
+});
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
     app.UseSwaggerUI();
 }
 app.MapControllers();
