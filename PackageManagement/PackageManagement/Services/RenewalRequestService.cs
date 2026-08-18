@@ -64,5 +64,12 @@ namespace PackageManagement.Services
                 .FirstOrDefaultAsync(x =>
                     x.RequestId == requestId);
         }
+        public async Task<List<RenewalRequest>> GetAllRequestsAsync()
+        {
+            return await _context.RenewalRequests
+                .OrderByDescending(x => x.CreatedDate)
+                .ToListAsync();
+        }
     }
+
 }

@@ -61,4 +61,11 @@ public class RenewalController : ControllerBase
             PackageStatus = "Active"
         });
     }
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAll()
+    {
+        var requests = await _renewalRequestService.GetAllRequestsAsync();
+
+        return Ok(requests);
+    }
 }
