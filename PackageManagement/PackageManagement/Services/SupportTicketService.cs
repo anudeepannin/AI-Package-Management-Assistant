@@ -58,4 +58,10 @@ public class SupportTicketService
 
         await _context.SaveChangesAsync();
     }
+    public async Task<List<SupportTicket>> GetAllTicketsAsync()
+    {
+        return await _context.SupportTickets
+            .OrderByDescending(x => x.CreatedDate)
+            .ToListAsync();
+    }
 }

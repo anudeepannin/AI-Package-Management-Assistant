@@ -38,4 +38,11 @@ public class SupportController : ControllerBase
 
         return Ok("Closed");
     }
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAll()
+    {
+        var tickets = await _service.GetAllTicketsAsync();
+
+        return Ok(tickets);
+    }
 }
