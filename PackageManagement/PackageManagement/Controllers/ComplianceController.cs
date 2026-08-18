@@ -30,4 +30,12 @@ public class ComplianceController : ControllerBase
 
         return Ok(report);
     }
+    [HttpGet("reportAll")]
+    public async Task<IActionResult> GetComplianceReport()
+    {
+        var report =
+            await _service.GetComplianceReportAsync();
+
+        return Ok(report);
+    }
 }
